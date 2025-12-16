@@ -1,7 +1,8 @@
 flask
 flask-cors
-python-dotenv
 pandas
 openpyxl
-plotly
 google-generativeai
+python-dotenv
+werkzeug
+gunicorn
