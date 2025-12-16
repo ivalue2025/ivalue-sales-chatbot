@@ -179,6 +179,6 @@ def status():
 
 
 if __name__ == '__main__':
-    print("Server starting → http://localhost:5000")
-    print("Press CTRL+C to stop\n")
-    app.run(debug=True, port=5000, use_reloader=False)  # Optional: disable reloader to avoid double logs
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
