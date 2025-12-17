@@ -13,10 +13,18 @@ load_dotenv()
 app = Flask(__name__)
 
 # CORS: Allow local development and all Netlify deployments
-CORS(app, origins=[
-    "http://localhost:3000",
-    "https://*.netlify.app"
-])
+# Note: Replace 'ivalue-chatbot.netlify.app' with your actual Netlify domain
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:3000",
+            "https://ivalue-chatbot.netlify.app"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": False
+    }
+})
 
 # Google Gemini API Key
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -51,7 +59,7 @@ if os.path.exists(DEFAULT_FILE_PATH):
             print("DEFAULT DATA LOADED SUCCESSFULLY!")
             print(f"   • Rows: {len(df):,}")
             print(f"   • Columns: {len(df.columns)}")
-            print("   • You can now ask questions immediately – no upload needed!")
+            print("   • You can now ask questions immediately — no upload needed!")
         else:
             print("File loaded but empty or invalid.")
     except Exception as e:
