@@ -12,10 +12,10 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Allow your Netlify frontend (use wildcard for any Netlify subdomain)
+# CORS: Allow local development and all Netlify deployments
 CORS(app, origins=[
-    "http://localhost:3000",  # Local development
-    "https://*.netlify.app"   # All Netlify sites (safe and convenient)
+    "http://localhost:3000",
+    "https://*.netlify.app"
 ])
 
 # Google Gemini API Key
@@ -53,7 +53,7 @@ if os.path.exists(DEFAULT_FILE_PATH):
             print(f"   • Columns: {len(df.columns)}")
             print("   • You can now ask questions immediately – no upload needed!")
         else:
-            print("Failed to process the default file (empty or invalid).")
+            print("File loaded but empty or invalid.")
     except Exception as e:
         print(f"Error loading default file: {e}")
 else:
@@ -168,7 +168,7 @@ def status():
             'message': 'Waiting for file upload...'
         })
 
-# Proper port binding for Render
+# Proper port binding for Render (and local dev)
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
