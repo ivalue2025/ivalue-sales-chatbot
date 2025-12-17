@@ -7,30 +7,19 @@ import pandas as pd
 from werkzeug.utils import secure_filename
 import google.generativeai as genai
 from dotenv import load_dotenv
-import re
 
 load_dotenv()
 
 app = Flask(__name__)
 
-# CORS: Allow local development and ALL Netlify deployments (including preview URLs)
-def is_allowed_origin(origin):
-    """Check if origin is allowed - supports all Netlify subdomains"""
-    if not origin:
-        return False
-    
-    allowed_patterns = [
-        r"^http://localhost:3000$",
-        r"^https://.*\.netlify\.app$",  # Matches any Netlify subdomain
-    ]
-    
-    return any(re.match(pattern, origin) for pattern in allowed_patterns)
-
-CORS(app, 
-     origins=is_allowed_origin,
-     methods=["GET", "POST", "OPTIONS"],
-     allow_headers=["Content-Type"],
-     supports_credentials=False)
+# CORS: Allow all origins (works with all Netlify deployments and localhost)
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Google Gemini API Key
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
