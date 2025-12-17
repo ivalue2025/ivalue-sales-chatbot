@@ -7,7 +7,7 @@ import { FaChartLine, FaUsers, FaExchangeAlt, FaCalendarAlt } from 'react-icons/
 import RoleBasedDropdown from './RoleBasedDropdown';
 import TokenInput from './TokenInput';
 
-const Chat = ({ prefillQuestion, onAutoExecuteQuery }) => {
+const Chat = ({ prefillQuestion, onAutoExecuteQuery, apiBase }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +47,7 @@ const Chat = ({ prefillQuestion, onAutoExecuteQuery }) => {
     
     try {
       // Use the auto-query endpoint for automatic executions
-      const response = await axios.post('http://localhost:5000/auto-query', { query });
+      const response = await axios.post(`${apiBase}/auto-query`, { query });
       const botMessage = { 
         text: response.data.response, 
         sender: 'bot',
@@ -64,7 +64,7 @@ const Chat = ({ prefillQuestion, onAutoExecuteQuery }) => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [apiBase]);
 
   // Updated useEffect to handle auto-execution
   useEffect(() => {
@@ -174,7 +174,7 @@ const Chat = ({ prefillQuestion, onAutoExecuteQuery }) => {
     setIsLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:5000/query', { query: messageToSend });
+      const response = await axios.post(`${apiBase}/query`, { query: messageToSend });
       const botMessage = { 
         text: response.data.response, 
         sender: 'bot',
@@ -210,7 +210,7 @@ const Chat = ({ prefillQuestion, onAutoExecuteQuery }) => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/upload', formData);
+      const response = await axios.post(`${apiBase}/upload`, formData);
       setMessages(prev => [...prev, {
         text: `✅ **File uploaded successfully!**\n- Name: ${response.data.filename}\n- Rows: ${response.data.rows.toLocaleString()}`,
         sender: 'bot',

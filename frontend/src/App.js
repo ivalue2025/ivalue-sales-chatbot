@@ -205,6 +205,7 @@ function App() {
               isPanelOpen={isPanelOpen}
               onTogglePanel={togglePanel}
               onAutoExecuteQuery={handleSetAutoExecuteHandler}
+              apiBase={API_BASE}
             />
           </div>
         </div>
