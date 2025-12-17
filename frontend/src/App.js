@@ -16,7 +16,8 @@ function App() {
   const [initMessage, setInitMessage] = useState('Starting iValue AI Assistant...');
   const [autoLoadProgress, setAutoLoadProgress] = useState(0);
 
-  const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000';
+  // FIXED: Updated API_BASE to use Render backend URL
+  const API_BASE = process.env.REACT_APP_API_BASE || 'https://ivalue-sales-chatbot.onrender.com';
 
   useEffect(() => {
     let progress = 0;
