@@ -3,7 +3,7 @@ from flask_cors import CORS
 from sales_processor import SalesDataProcessor, SalesChatbot, load_data_from_file
 import os
 import io
-import pandas as pd  # Add pandas import for streaming
+import pandas as pd
 from werkzeug.utils import secure_filename
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -11,9 +11,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
 
-# Google Gemini API Key (auto-loaded from env)
+# Allow your Netlify frontend (use wildcard for any Netlify subdomain)
+CORS(app, origins=[
+    "http://localhost:3000",  # Local development
+    "https://*.netlify.app"   # All Netlify sites (safe and convenient)
+])
+
+# Google Gemini API Key
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 if GOOGLE_API_KEY:
     print("Google API key loaded from environment.")
@@ -29,7 +34,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
-# === AUTO-LOAD DEFAULT FILE (unchanged - already fast) ===
+# === AUTO-LOAD DEFAULT FILE ===
 DEFAULT_FILE_PATH = os.path.join('uploads', 'sales_data.xlsx')
 
 print("\n" + "="*60)
@@ -40,7 +45,7 @@ if os.path.exists(DEFAULT_FILE_PATH):
     print(f"Found default file → Auto-loading: {DEFAULT_FILE_PATH}")
     try:
         df = load_data_from_file(DEFAULT_FILE_PATH)
-        if df is not None:
+        if df is not None and len(df) > 0:
             processor = SalesDataProcessor(df)
             current_chatbot = SalesChatbot(processor)
             print("DEFAULT DATA LOADED SUCCESSFULLY!")
@@ -48,7 +53,7 @@ if os.path.exists(DEFAULT_FILE_PATH):
             print(f"   • Columns: {len(df.columns)}")
             print("   • You can now ask questions immediately – no upload needed!")
         else:
-            print("Failed to process the default file.")
+            print("Failed to process the default file (empty or invalid).")
     except Exception as e:
         print(f"Error loading default file: {e}")
 else:
@@ -59,7 +64,6 @@ print("="*60 + "\n")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 # === SUPER FAST UPLOAD: Stream directly to pandas (no disk write!) ===
 @app.route('/upload', methods=['POST'])
@@ -78,20 +82,12 @@ def upload_file():
         filename = secure_filename(file.filename)
         
         try:
-            # Read file directly into memory as bytes
             file_bytes = file.read()
             file_stream = io.BytesIO(file_bytes)
             
             print(f"Processing uploaded file in memory: {filename} ({len(file_bytes)/1e6:.1f} MB)")
             
-            # Use pandas + openpyxl engine for fastest .xlsx parsing
             df = pd.read_excel(file_stream, engine='openpyxl')
-            
-            # Optional: Save a copy for debugging (remove in production if not needed)
-            # save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            # file_stream.seek(0)
-            # with open(save_path, 'wb') as f:
-            #     f.write(file_stream.read())
             
             if df is not None and len(df) > 0:
                 processor = SalesDataProcessor(df)
@@ -114,8 +110,6 @@ def upload_file():
     else:
         return jsonify({'error': 'Invalid file type. Only .xlsx and .xls allowed'}), 400
 
-
-# === REST OF ROUTES (unchanged - already optimal) ===
 @app.route('/query', methods=['POST'])
 def handle_query():
     global current_chatbot
@@ -129,7 +123,6 @@ def handle_query():
     
     response = current_chatbot.process_query(user_query)
     return jsonify({'response': response})
-
 
 @app.route('/auto-query', methods=['POST'])
 def handle_auto_query():
@@ -148,7 +141,6 @@ def handle_auto_query():
         'response': response
     })
 
-
 @app.route('/suggestions', methods=['GET'])
 def get_suggestions():
     suggestions = {
@@ -160,7 +152,6 @@ def get_suggestions():
         'customers': ["Show top customers by revenue", "Show regional performance for a customer"]
     }
     return jsonify(suggestions)
-
 
 @app.route('/status', methods=['GET'])
 def status():
@@ -177,7 +168,7 @@ def status():
             'message': 'Waiting for file upload...'
         })
 
-
+# Proper port binding for Render
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
