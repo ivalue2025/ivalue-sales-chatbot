@@ -16,76 +16,88 @@ function App() {
   const [initMessage, setInitMessage] = useState('Starting iValue AI Assistant...');
   const [autoLoadProgress, setAutoLoadProgress] = useState(0);
 
-  // FIXED: Updated API_BASE to use Render backend URL
+  // API base for backend (local dev or Render)
   const API_BASE = process.env.REACT_APP_API_BASE || 'https://ivalue-sales-chatbot.onrender.com';
 
   useEffect(() => {
-    let progress = 0;
+    let isMounted = true;
     let isLoaded = false;
     let lastUpdateTime = Date.now();
+    let pollInterval;
 
     const checkStatus = async () => {
-      if (isLoaded) return;
+      if (isLoaded || !isMounted) return;
 
       try {
-        const response = await axios.get(`${API_BASE}/status`);
-        
+        const response = await axios.get(`${API_BASE}/status`, { timeout: 10000 }); // 10s timeout
+
         if (response.data.data_loaded) {
           isLoaded = true;
           setAutoLoadProgress(100);
           setInitMessage('All set! Your sales data is ready.');
-          setTimeout(() => setIsInitializing(false), 800);
+          setTimeout(() => {
+            if (isMounted) setIsInitializing(false);
+          }, 800);
+          clearInterval(pollInterval);
           return;
         }
       } catch (err) {
-        // Backend not ready yet
+        // Expected on first load when backend is waking up
+        console.warn('Backend waking up or not ready yet...', err.message || err);
       }
 
-      // Simulate realistic progress that keeps moving
+      // Keep progress moving smoothly even if backend isn't responding yet
       const now = Date.now();
       const timeSinceLast = now - lastUpdateTime;
       lastUpdateTime = now;
 
-      if (!isLoaded) {
+      if (!isLoaded && isMounted) {
         let increment = 0;
 
-        if (progress < 30) {
-          // Fast initial: server start + file read
-          increment = 1.2 + Math.random() * 1.5;
+        if (autoLoadProgress < 40) {
+          increment = 1.5 + Math.random() * 1.2;
           setInitMessage('Starting server and reading sales file...');
-        } else if (progress < 60) {
-          // Steady: pandas loading rows
-          increment = 0.8 + Math.random() * 1;
-          setInitMessage('Analyzing 53,868 rows of data...');
-        } else if (progress < 85) {
-          // Slower: building partner/OEM stats
-          increment = 0.4 + Math.random() * 0.6;
-          setInitMessage('Building performance insights...');
-        } else if (progress < 95) {
-          // Very slow: final stats
-          increment = 0.15 + Math.random() * 0.3;
-          setInitMessage('Finalizing partner and customer analytics...');
+        } else if (autoLoadProgress < 70) {
+          increment = 1 + Math.random() * 0.8;
+          setInitMessage('Analyzing 53,868 rows of sales data...');
+        } else if (autoLoadProgress < 90) {
+          increment = 0.5 + Math.random() * 0.5;
+          setInitMessage('Building performance insights and analytics...');
         } else {
-          // Tiny ticks near end
-          increment = 0.08 + Math.random() * 0.1;
-          setInitMessage('Almost there — preparing your AI assistant...');
+          increment = 0.15 + Math.random() * 0.2;
+          setInitMessage('Almost ready — warming up your AI assistant...');
         }
 
-        progress = Math.min(progress + increment, 95);
-        setAutoLoadProgress(Math.round(progress));
+        setAutoLoadProgress(prev => Math.min(Math.round(prev + increment), 98));
       }
     };
 
-    // Initial check
+    // Start checking immediately
     checkStatus();
 
-    // Poll frequently for smooth animation
-    const interval = setInterval(checkStatus, 1200);
+    // Poll every 1.5 seconds
+    pollInterval = setInterval(checkStatus, 1500);
 
-    return () => clearInterval(interval);
+    // Fallback: Force load after 90 seconds even if backend is slow
+    const forceLoadTimeout = setTimeout(() => {
+      if (!isLoaded && isMounted) {
+        console.info('Force-loading app after 90s timeout');
+        setAutoLoadProgress(100);
+        setInitMessage('Ready! (Sales data loading in background)');
+        setIsInitializing(false);
+        isLoaded = true;
+      }
+    }, 90000); // 90 seconds
+
+    // Cleanup on unmount
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+      clearTimeout(forceLoadTimeout);
+    };
   }, [API_BASE]);
 
-  // Your existing handlers
+  // Handlers
   const handleQuestionSelect = useCallback((question) => {
     console.log('Question selected:', question);
     setSelectedQuestion(question);
@@ -115,7 +127,7 @@ function App() {
 
   return (
     <div className="app">
-      {/* AUTO-LOAD BUFFER WITH SMOOTH REALISTIC PROGRESS */}
+      {/* AUTO-LOAD BUFFER WITH SMOOTH PROGRESS */}
       {isInitializing && (
         <div style={{
           position: 'fixed',
@@ -183,7 +195,7 @@ function App() {
           </div>
 
           <p style={{ marginTop: '40px', fontSize: '14px', opacity: 0.7 }}>
-            This usually takes 10-25 seconds on first load
+            This usually takes 10–90 seconds on first load after inactivity
           </p>
         </div>
       )}
